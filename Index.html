@@ -1,0 +1,163 @@
+/************************************************************
+
+BELLA PIZZA PRO MAX 🚀
+
+Full system: Frontend + Backend plan + Kitchen panel + PWA
+
+Stack: React + Firebase (Firestore) + Tailwind + Framer Motion ************************************************************/
+
+
+import { useState, createContext, useContext } from "react"; import { motion } from "framer-motion";
+
+/***********************
+
+FIREBASE (mock setup) ***********************/ // Replace with real Firebase config export const firebaseConfig = { apiKey: "YOUR_KEY", authDomain: "YOUR_DOMAIN", projectId: "bella-pizza", };
+
+
+// Fake DB layer (replace with Firestore later) const DB = { orders: [], };
+
+/***********************
+
+CART CONTEXT ***********************/ const CartContext = createContext();
+
+
+const useCart = () => useContext(CartContext);
+
+function CartProvider({ children }) { const [cart, setCart] = useState([]);
+
+const add = (item) => setCart((p) => [...p, item]); const clear = () => setCart([]);
+
+const total = cart.reduce((a, b) => a + b.price, 0);
+
+return ( <CartContext.Provider value={{ cart, add, clear, total }}> {children} </CartContext.Provider> ); }
+
+/***********************
+
+DATA ***********************/ const PIZZAS = [ { id: 1, name: "Margherita", price: 25, desc: "Sos, mozzarella, bazylia" }, { id: 2, name: "Pepperoni", price: 32, desc: "Sos, mozzarella, pepperoni" }, { id: 3, name: "BBQ Chicken", price: 36, desc: "Kurczak, BBQ, cebula" }, { id: 4, name: "4 Sery", price: 34, desc: "Mix serów premium" }, ];
+
+
+/***********************
+
+HOME PAGE ***********************/ function Home({ go }) { return (
+
+ <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center">
+   <motion.h1
+     initial={{ opacity: 0 }}
+     animate={{ opacity: 1 }}
+     className="text-5xl font-bold"
+   >
+     Bella Pizza 🍕
+   </motion.h1>
+   <p className="text-gray-400 mt-4">Smak, który wraca.</p>   <div className="mt-8 flex gap-4">
+     <button onClick={() => go("menu")} className="bg-red-600 px-6 py-3 rounded-xl">
+       Menu
+     </button>
+     <button onClick={() => go("kitchen")} className="bg-zinc-800 px-6 py-3 rounded-xl">
+       Kitchen
+     </button>
+   </div>
+ </div>
+); }
+
+/***********************
+
+MENU ***********************/ function Menu({ go }) { const { add } = useCart();
+
+
+return ( <div className="min-h-screen bg-black text-white p-6"> <h2 className="text-3xl mb-6">Menu 🍕</h2>
+
+<div className="grid md:grid-cols-2 gap-4">
+    {PIZZAS.map((p) => (
+      <motion.div key={p.id} whileHover={{ scale: 1.05 }} className="bg-zinc-900 p-4 rounded-2xl">
+        <h3 className="text-xl font-bold">{p.name}</h3>
+        <p className="text-gray-400 text-sm">{p.desc}</p>
+
+        <div className="flex justify-between mt-4">
+          <span className="text-yellow-400">{p.price} zł</span>
+          <button onClick={() => add(p)} className="bg-red-600 px-3 py-1 rounded-xl">
+            Dodaj
+          </button>
+        </div>
+      </motion.div>
+    ))}
+  </div>
+
+  <button onClick={() => go("cart")} className="fixed bottom-6 right-6 bg-green-600 px-6 py-3 rounded-full">
+    Koszyk 🛒
+  </button>
+</div>
+
+); }
+
+/***********************
+
+CART + CHECKOUT ***********************/ function Cart({ go }) { const { cart, total, clear } = useCart();
+
+
+const order = () => { DB.orders.push({ id: Date.now(), items: cart, status: "new" }); clear(); alert("Zamówienie wysłane 🍕"); go("home"); };
+
+return ( <div className="min-h-screen bg-black text-white p-6"> <h2 className="text-2xl mb-4">Koszyk</h2>
+
+{cart.map((c, i) => (
+    <div key={i} className="flex justify-between">
+      <span>{c.name}</span>
+      <span>{c.price} zł</span>
+    </div>
+  ))}
+
+  <hr className="my-4" />
+  <p>Razem: {total} zł</p>
+
+  <button onClick={order} className="bg-green-600 w-full mt-4 py-3 rounded-xl">
+    Zamawiam 🍕
+  </button>
+</div>
+
+); }
+
+/***********************
+
+KITCHEN PANEL (REAL-TIME MOCK) ***********************/ function Kitchen() { const [orders, setOrders] = useState(DB.orders);
+
+
+const updateStatus = (id, status) => { DB.orders = DB.orders.map((o) => (o.id === id ? { ...o, status } : o)); setOrders([...DB.orders]); };
+
+return ( <div className="min-h-screen bg-black text-white p-6"> <h2 className="text-2xl mb-4">Kitchen 👨‍🍳</h2>
+
+{orders.map((o) => (
+    <div key={o.id} className="bg-zinc-900 p-4 rounded-xl mb-3">
+      <p>Order #{o.id}</p>
+      <p>Status: {o.status}</p>
+
+      <div className="flex gap-2 mt-2">
+        <button onClick={() => updateStatus(o.id, "cooking")} className="bg-yellow-600 px-2 py-1 rounded">
+          Cooking
+        </button>
+        <button onClick={() => updateStatus(o.id, "done")} className="bg-green-600 px-2 py-1 rounded">
+          Done
+        </button>
+      </div>
+    </div>
+  ))}
+</div>
+
+); }
+
+/***********************
+
+APP ROUTER (simple) ***********************/ export default function App() { const [page, setPage] = useState("home");
+
+
+const render = () => { if (page === "menu") return <Menu go={setPage} />; if (page === "cart") return <Cart go={setPage} />; if (page === "kitchen") return <Kitchen />; return <Home go={setPage} />; };
+
+return <CartProvider>{render()}</CartProvider>; }
+
+/***********************
+
+NEXT LEVEL FEATURES (PLAN)
+
+
+
+---
+
+// 1. Firebase Firestore real-time orders // 2. Auth (admin kitchen login) // 3. Stripe / BLIK payments // 4. PWA install (mobile app feel) // 5. Live delivery tracking map // 6. Notifications (order updates) // 7. Animations (Framer Motion upgrade) // 8. Image AI pizzas (realistic menu)
